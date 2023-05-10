@@ -1,0 +1,83 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-proxy
+  namespace: default
+  labels:
+    app: redis-proxy
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: redis-proxy
+  template:
+    metadata:
+      labels:
+        app: redis-proxy
+    spec:
+      initContainers:
+      - name: nginx-proxy-configmanager-init
+        image: vfabi/nginx-proxy-configmanager:redis-proxy-latest
+        imagePullPolicy: Always
+        command: ["python3"]
+        args: ["-u", "/app/init.py"]
+        env:
+        - name: NGINX_CONFIG_FILE
+          value: "/etc/nginx/conf.d/redis-master.conf"
+        - name: REDIS_SENTINEL_ADDRESS
+          value: "redis-cluster"
+        - name: REDIS_SENTINEL_PORT
+          value: "26379"
+        - name: REDIS_SENTINEL_PASSWORD
+          value: "zaq12345"
+        - name: REDIS_SENTINEL_MASTER_NAME
+          value: "mymaster"
+        volumeMounts:
+          - name: shared-data
+            mountPath: /etc/nginx/conf.d
+      containers:
+      - name: nginx-proxy-autoreload
+        image: vfabi/nginx-proxy-autoreload:latest
+        imagePullPolicy: Always
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "250m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+        volumeMounts:
+        - name: shared-data
+          mountPath: /etc/nginx/conf.d
+        ports:
+        - containerPort: 6379
+      - name: nginx-proxy-configmanager
+        image: vfabi/nginx-proxy-configmanager:redis-proxy-latest
+        imagePullPolicy: Always
+        command: ["python3"]
+        args: ["-u", "/app/main.py"]
+        env:
+        - name: NGINX_CONFIG_FILE
+          value: "/etc/nginx/conf.d/redis-master.conf"
+        - name: REDIS_SENTINEL_ADDRESS
+          value: "redis-cluster"
+        - name: REDIS_SENTINEL_PORT
+          value: "26379"
+        - name: REDIS_SENTINEL_PASSWORD
+          value: "zaq12345"
+        - name: REDIS_SENTINEL_MASTER_NAME
+          value: "mymaster"
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+        volumeMounts:
+          - name: shared-data
+            mountPath: /etc/nginx/conf.d
+      volumes:
+      - name: shared-data
+        emptyDir: {}
