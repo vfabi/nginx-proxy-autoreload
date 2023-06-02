@@ -60,8 +60,8 @@ spec:
         env:
         - name: NGINX_CONFIG_FILE
           value: "/etc/nginx/conf.d/redis-master.conf"
-        - name: REDIS_SENTINEL_ADDRESS
-          value: "redis-cluster"
+        - name: REDIS_SENTINEL_ADDRESSES
+          value: "redis-cluster-node-0.redis-cluster-headless.ssai.svc.cluster.local,redis-cluster-node-1.redis-cluster-headless.ssai.svc.cluster.local,redis-cluster-node-2.redis-cluster-headless.ssai.svc.cluster.local"
         - name: REDIS_SENTINEL_PORT
           value: "26379"
         - name: REDIS_SENTINEL_PASSWORD
