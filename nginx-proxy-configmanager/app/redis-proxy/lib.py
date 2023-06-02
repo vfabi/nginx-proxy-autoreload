@@ -2,24 +2,29 @@
 
 import re
 import os
-from redis.sentinel import Sentinel
+from redis.sentinel import Sentinel, MasterNotFoundError
 
 
 class ExtDataRedisSentinel:
 
-    def __init__(self, sentinel_address, sentinel_password, sentinel_port=26379, sentinel_master_name='mymaster'):
-        self.sentinel_address = sentinel_address
+    def __init__(self, sentinel_addresses, sentinel_password, sentinel_master_name, sentinel_port=26379):
+        self.sentinel_addresses = sentinel_addresses.split(',')
         self.sentinel_port = sentinel_port
         self.sentinel_password = sentinel_password
         self.sentinel_master_name = sentinel_master_name
 
     def get_redis_master_address(self):
-        sentinel = Sentinel(
-            [(self.sentinel_address, self.sentinel_port)],
-            socket_timeout=0.1,
-            sentinel_kwargs={'password': self.sentinel_password}
-        )
-        host, port = sentinel.discover_master(self.sentinel_master_name)
+        for sentinel_address in self.sentinel_addresses:
+            try:
+                sentinel = Sentinel(
+                    [(sentinel_address, self.sentinel_port)],
+                    socket_timeout=0.1,
+                    sentinel_kwargs={'password': self.sentinel_password}
+                )
+                host, port = sentinel.discover_master(self.sentinel_master_name)
+                break
+            except MasterNotFoundError:
+                pass
         return host
 
 
